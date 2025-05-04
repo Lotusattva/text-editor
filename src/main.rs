@@ -17,7 +17,7 @@ struct MyEditor {
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
-    FileOpened(Result<Arc<String>, FsError>),
+    FileOpened(Result<(PathBuf, Arc<String>), FsError>),
     Open,
     New,
 }
@@ -28,7 +28,7 @@ enum FsError {
     IOFailed(ErrorKind),
 }
 
-fn pick_file() -> Result<Arc<String>, FsError> {
+fn pick_file() -> Result<(PathBuf, Arc<String>), FsError> {
     let path = FileDialog::new()
         .set_title("Choose a text file...")
         .pick_file()
@@ -37,15 +37,17 @@ fn pick_file() -> Result<Arc<String>, FsError> {
     load_file(path)
 }
 
-fn load_file(path: PathBuf) -> Result<Arc<String>, FsError> {
-    read_to_string(path)
+fn load_file(path: PathBuf) -> Result<(PathBuf, Arc<String>), FsError> {
+    let content = read_to_string(&path)
         .map(Arc::new)
         .map_err(|error| error.kind())
-        .map_err(FsError::IOFailed)
+        .map_err(FsError::IOFailed)?;
+
+    Ok((path, content))
 }
 
 fn default_file() -> PathBuf {
-    PathBuf::from(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR")))
+    PathBuf::from(format!("{}\\src\\main.rs", env!("CARGO_MANIFEST_DIR")))
 }
 
 impl MyEditor {
@@ -64,7 +66,8 @@ impl MyEditor {
         let top_bar = row![
             button("New").on_press(Message::New),
             button("Open").on_press(Message::Open)
-        ];
+        ]
+        .spacing(10);
 
         let text_editor = text_editor(&self.content)
             .placeholder("Start typing...")
@@ -104,7 +107,8 @@ impl MyEditor {
             }
 
             Message::FileOpened(result) => match result {
-                Ok(content) => {
+                Ok((path, content)) => {
+                    self.curr_path = Some(path);
                     self.content = text_editor::Content::with_text(&content);
                     Task::none()
                 }
