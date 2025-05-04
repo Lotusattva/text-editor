@@ -35,7 +35,7 @@ fn pick_file() -> Result<Arc<String>, FsError> {
     load_file(path)
 }
 
-fn load_file(path: impl AsRef<Path>) -> Result<Arc<String>, FsError> {
+fn load_file(path: PathBuf) -> Result<Arc<String>, FsError> {
     read_to_string(path)
         .map(Arc::new)
         .map_err(|error| error.kind())
