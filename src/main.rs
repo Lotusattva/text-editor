@@ -78,19 +78,25 @@ impl MyEditor {
             .into()
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Edit(action) => self.content.perform(action),
+            Message::Edit(action) => {
+                self.content.perform(action);
+                Task::none()
+            }
 
             Message::FileOpened(result) => match result {
-                Ok(content) => self.content = text_editor::Content::with_text(&content),
-                Err(error) => self.error = Some(error),
+                Ok(content) => {
+                    self.content = text_editor::Content::with_text(&content);
+                    Task::none()
+                }
+                Err(error) => {
+                    self.error = Some(error);
+                    Task::none()
+                }
             },
 
-            Message::Open => match pick_file() {
-                Ok(file) => self.content = text_editor::Content::with_text(&file),
-                Err(error) => self.error = Some(error),
-            },
+            Message::Open => Task::done(Message::FileOpened(pick_file())),
         }
     }
 }
