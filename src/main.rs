@@ -19,6 +19,7 @@ enum Message {
     Edit(text_editor::Action),
     FileOpened(Result<Arc<String>, FsError>),
     Open,
+    New,
 }
 
 #[derive(Debug, Clone)]
@@ -52,7 +53,7 @@ impl MyEditor {
         (
             Self {
                 curr_path: None,
-                content: text_editor::Content::default(),
+                content: text_editor::Content::new(),
                 error: None,
             },
             Task::done(Message::FileOpened(load_file(default_file()))),
@@ -60,7 +61,10 @@ impl MyEditor {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let top_bar = row![button("Open").on_press(Message::Open)];
+        let top_bar = row![
+            button("New").on_press(Message::New),
+            button("Open").on_press(Message::Open)
+        ];
 
         let text_editor = text_editor(&self.content)
             .placeholder("Start typing...")
@@ -109,6 +113,13 @@ impl MyEditor {
                     Task::none()
                 }
             },
+
+            Message::New => {
+                self.curr_path = None;
+                self.content = text_editor::Content::new();
+                self.error = None;
+                Task::none()
+            }
 
             Message::Open => Task::done(Message::FileOpened(pick_file())),
         }
