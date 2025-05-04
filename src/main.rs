@@ -1,7 +1,7 @@
 use rfd::FileDialog;
 use std::fs::read_to_string;
 use std::io::ErrorKind;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use iced::widget::{button, column, container, horizontal_space, row, text, text_editor};
@@ -42,6 +42,10 @@ fn load_file(path: impl AsRef<Path>) -> Result<Arc<String>, FsError> {
         .map_err(FsError::IOFailed)
 }
 
+fn default_file() -> PathBuf {
+    PathBuf::from(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR")))
+}
+
 impl MyEditor {
     fn new() -> (Self, Task<Message>) {
         (
@@ -49,10 +53,7 @@ impl MyEditor {
                 content: text_editor::Content::default(),
                 error: None,
             },
-            Task::done(Message::FileOpened(load_file(format!(
-                "{}/src/main.rs",
-                env!("CARGO_MANIFEST_DIR")
-            )))),
+            Task::done(Message::FileOpened(load_file(default_file()))),
         )
     }
 
