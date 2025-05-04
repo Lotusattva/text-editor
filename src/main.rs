@@ -52,11 +52,11 @@ fn default_file() -> PathBuf {
     PathBuf::from(format!("{}\\src\\main.rs", env!("CARGO_MANIFEST_DIR")))
 }
 
+// declared as async so that iced thinks this is a future
 async fn save_file(path: Option<PathBuf>, text: String) -> Result<PathBuf, FsError> {
     let path = if let Some(path) = path {
         path
     } else {
-        // pick a path
         FileDialog::new()
             .set_title("Choose a file name...")
             .save_file()
