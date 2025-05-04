@@ -9,6 +9,7 @@ use iced::{application, Element, Length, Task};
 
 #[derive(Default)]
 struct MyEditor {
+    curr_path: Option<PathBuf>,
     content: text_editor::Content,
     error: Option<FsError>,
 }
@@ -50,6 +51,7 @@ impl MyEditor {
     fn new() -> (Self, Task<Message>) {
         (
             Self {
+                curr_path: None,
                 content: text_editor::Content::default(),
                 error: None,
             },
@@ -68,7 +70,17 @@ impl MyEditor {
         let status_bar = {
             let (line, column) = &self.content.cursor_position();
 
+            let status = if let Some(FsError::IOFailed(error)) = self.error.as_ref() {
+                text(error.to_string())
+            } else {
+                match self.curr_path.as_deref().and_then(Path::to_str) {
+                    Some(path) => text(path),
+                    None => text("New file (unsaved)"),
+                }
+            };
+
             row![
+                status,
                 horizontal_space(),
                 text(format!("{}:{}", line + 1, column + 1))
             ]
