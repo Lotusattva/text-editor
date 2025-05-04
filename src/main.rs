@@ -9,7 +9,7 @@ use iced::{application, Element, Length, Task};
 
 #[derive(Default)]
 struct MyEditor {
-    curr_path: Option<PathBuf>,
+    path: Option<PathBuf>,
     content: text_editor::Content,
     error: Option<FsError>,
 }
@@ -20,6 +20,8 @@ enum Message {
     FileOpened(Result<(PathBuf, Arc<String>), FsError>),
     Open,
     New,
+    Save,
+    FileSaved(Result<PathBuf, FsError>),
 }
 
 #[derive(Debug, Clone)]
@@ -50,11 +52,28 @@ fn default_file() -> PathBuf {
     PathBuf::from(format!("{}\\src\\main.rs", env!("CARGO_MANIFEST_DIR")))
 }
 
+async fn save_file(path: Option<PathBuf>, text: String) -> Result<PathBuf, FsError> {
+    let path = if let Some(path) = path {
+        path
+    } else {
+        // pick a path
+        FileDialog::new()
+            .set_title("Choose a file name...")
+            .save_file()
+            .ok_or(FsError::DialogClosed)
+            .map(|handle| handle.as_path().to_owned())?
+    };
+
+    std::fs::write(&path, text).map_err(|error| FsError::IOFailed(error.kind()))?;
+
+    Ok(path)
+}
+
 impl MyEditor {
     fn new() -> (Self, Task<Message>) {
         (
             Self {
-                curr_path: None,
+                path: None,
                 content: text_editor::Content::new(),
                 error: None,
             },
@@ -65,7 +84,8 @@ impl MyEditor {
     fn view(&self) -> Element<'_, Message> {
         let top_bar = row![
             button("New").on_press(Message::New),
-            button("Open").on_press(Message::Open)
+            button("Open").on_press(Message::Open),
+            button("Save").on_press(Message::Save)
         ]
         .spacing(10);
 
@@ -80,7 +100,7 @@ impl MyEditor {
             let status = if let Some(FsError::IOFailed(error)) = self.error.as_ref() {
                 text(error.to_string())
             } else {
-                match self.curr_path.as_deref().and_then(Path::to_str) {
+                match self.path.as_deref().and_then(Path::to_str) {
                     Some(path) => text(path),
                     None => text("New file (unsaved)"),
                 }
@@ -108,7 +128,7 @@ impl MyEditor {
 
             Message::FileOpened(result) => match result {
                 Ok((path, content)) => {
-                    self.curr_path = Some(path);
+                    self.path = Some(path);
                     self.content = text_editor::Content::with_text(&content);
                     Task::none()
                 }
@@ -119,13 +139,30 @@ impl MyEditor {
             },
 
             Message::New => {
-                self.curr_path = None;
+                self.path = None;
                 self.content = text_editor::Content::new();
                 self.error = None;
                 Task::none()
             }
 
             Message::Open => Task::done(Message::FileOpened(pick_file())),
+
+            Message::Save => {
+                let text = self.content.text();
+
+                Task::perform(save_file(self.path.to_owned(), text), Message::FileSaved)
+            }
+
+            Message::FileSaved(result) => match result {
+                Ok(path) => {
+                    self.path = Some(path);
+                    Task::none()
+                }
+                Err(error) => {
+                    self.error = Some(error);
+                    Task::none()
+                }
+            },
         }
     }
 }
