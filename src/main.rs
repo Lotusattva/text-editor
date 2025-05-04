@@ -94,6 +94,7 @@ impl MyEditor {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Edit(action) => {
+                self.error = None;
                 self.content.perform(action);
                 Task::none()
             }
