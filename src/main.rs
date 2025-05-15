@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use iced::widget::{button, column, container, horizontal_space, row, text, text_editor};
-use iced::{application, Element, Length, Task};
+use iced::{application, Element, Font, Length, Task};
 
 #[derive(Default)]
 struct MyEditor {
@@ -69,6 +69,27 @@ async fn save_file(path: Option<PathBuf>, text: String) -> Result<PathBuf, FsErr
     Ok(path)
 }
 
+enum Icon {
+    New,
+    Open,
+    Save,
+}
+
+fn icon<'a>(icon: Icon) -> Element<'a, Message> {
+    const ICON_FONT: Font = Font::with_name("editor-icons");
+    text(match icon {
+        Icon::New => "\u{E800}",
+        Icon::Open => "\u{F115}",
+        Icon::Save => "\u{E801}",
+    })
+    .font(ICON_FONT)
+    .into()
+}
+
+fn action<'a>(content: Element<'a, Message>, on_press: Message) -> Element<'a, Message> {
+    button(container(content).center_x(40)).on_press(on_press).into()
+}
+
 impl MyEditor {
     fn new() -> (Self, Task<Message>) {
         (
@@ -83,9 +104,9 @@ impl MyEditor {
 
     fn view(&self) -> Element<'_, Message> {
         let top_bar = row![
-            button("New").on_press(Message::New),
-            button("Open").on_press(Message::Open),
-            button("Save").on_press(Message::Save)
+            action(icon(Icon::New), Message::New),
+            action(icon(Icon::Open), Message::Open),
+            action(icon(Icon::Save), Message::Save),
         ]
         .spacing(10);
 
@@ -170,5 +191,6 @@ impl MyEditor {
 pub fn main() -> iced::Result {
     application("Text Editor", MyEditor::update, MyEditor::view)
         .centered()
+        .font(include_bytes!("../icons/editor-icons.ttf"))
         .run_with(|| MyEditor::new())
 }
