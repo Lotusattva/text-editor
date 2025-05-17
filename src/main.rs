@@ -1,16 +1,14 @@
-use iced::overlay::menu::Catalog;
 use rfd::FileDialog;
 use std::fs::read_to_string;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use iced::highlighter;
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text, text_editor, tooltip,
 };
 use iced::{application, Element, Font, Length, Task};
-use iced::{highlighter, theme};
-use iced::{Border, Color};
 
 struct MyEditor {
     path: Option<PathBuf>,
@@ -151,6 +149,7 @@ impl MyEditor {
             .placeholder("Start typing...")
             .on_action(Message::Edit)
             .height(Length::Fill)
+            .font(Font::MONOSPACE)
             .highlight(
                 self.path
                     .as_ref()
