@@ -4,18 +4,17 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use iced::highlighter::{self};
-use iced::keyboard::{self, Key, Modifiers};
+use iced::highlighter;
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text, text_editor,
 };
-use iced::{application, Element, Font, Length, Subscription, Task};
+use iced::{application, Element, Font, Length, Task};
 
 struct MyEditor {
     path: Option<PathBuf>,
     content: text_editor::Content,
     error: Option<FsError>,
-    theme: iced::highlighter::Theme,
+    theme: highlighter::Theme,
     is_dirty: bool,
 }
 
@@ -118,16 +117,6 @@ impl MyEditor {
             },
             Task::done(Message::FileOpened(load_file(default_file()))),
         )
-    }
-
-    fn subscription(&self) -> Subscription<Message> {
-         keyboard::on_key_press(|key: Key, modifiers: Modifiers| {
-        if key == Key::Character("S".into()) && modifiers.command() {
-            Some(Message::Save)
-        } else {
-            None
-        }
-    })
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -239,7 +228,6 @@ impl MyEditor {
 
 pub fn main() -> iced::Result {
     application("Text Editor", MyEditor::update, MyEditor::view)
-        .subscription(MyEditor::subscription)
         .centered()
         .font(include_bytes!("../icons/editor-icons.ttf"))
         .run_with(|| MyEditor::new())
