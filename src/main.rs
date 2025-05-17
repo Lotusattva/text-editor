@@ -179,6 +179,13 @@ impl MyEditor {
             .padding(10)
             .into()
     }
+    fn theme(&self) -> iced::Theme {
+        if self.theme.is_dark() {
+            iced::Theme::Dark
+        } else {
+            iced::Theme::Light
+        }
+    }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
@@ -240,6 +247,7 @@ impl MyEditor {
 
 pub fn main() -> iced::Result {
     application("Text Editor", MyEditor::update, MyEditor::view)
+        .theme(MyEditor::theme)
         .centered()
         .font(include_bytes!("../icons/editor-icons.ttf"))
         .run_with(|| MyEditor::new())
