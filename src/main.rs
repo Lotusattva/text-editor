@@ -1,14 +1,16 @@
+use iced::overlay::menu::Catalog;
 use rfd::FileDialog;
 use std::fs::read_to_string;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use iced::highlighter;
 use iced::widget::{
-    button, column, container, horizontal_space, pick_list, row, text, text_editor,
+    button, column, container, horizontal_space, pick_list, row, text, text_editor, tooltip,
 };
 use iced::{application, Element, Font, Length, Task};
+use iced::{highlighter, theme};
+use iced::{Border, Color};
 
 struct MyEditor {
     path: Option<PathBuf>,
@@ -91,18 +93,26 @@ fn icon<'a>(icon: Icon) -> Element<'a, Message> {
     .into()
 }
 
-fn action<'a>(content: Element<'a, Message>, on_press: Option<Message>) -> Element<'a, Message> {
+fn action<'a>(
+    content: Element<'a, Message>,
+    description: &'a str,
+    on_press: Option<Message>,
+) -> Element<'a, Message> {
     let is_disabled = on_press.is_none();
     // Build the button & wire up the click handler if we have one
-    let mut btn = button(container(content).center_x(40)).on_press_maybe(on_press);
-
-    // Pick the built-in style function
-    btn = btn.style(if is_disabled {
-        iced::widget::button::secondary
-    } else {
-        iced::widget::button::primary
-    });
-    btn.into()
+    tooltip(
+        button(container(content).center_x(40))
+            .on_press_maybe(on_press)
+            .style(if is_disabled {
+                iced::widget::button::secondary
+            } else {
+                iced::widget::button::primary
+            }),
+        description,
+        tooltip::Position::FollowCursor,
+    )
+    .style(|_| container::bordered_box(&iced::Theme::SolarizedDark))
+    .into()
 }
 
 impl MyEditor {
@@ -121,9 +131,13 @@ impl MyEditor {
 
     fn view(&self) -> Element<'_, Message> {
         let top_bar = row![
-            action(icon(Icon::New), Some(Message::New)),
-            action(icon(Icon::Open), Some(Message::Open)),
-            action(icon(Icon::Save), self.is_dirty.then_some(Message::Save)),
+            action(icon(Icon::New), "New File", Some(Message::New)),
+            action(icon(Icon::Open), "Open File", Some(Message::Open)),
+            action(
+                icon(Icon::Save),
+                "Save File",
+                self.is_dirty.then_some(Message::Save)
+            ),
             horizontal_space(),
             pick_list(
                 highlighter::Theme::ALL,
@@ -218,6 +232,7 @@ impl MyEditor {
                     Task::none()
                 }
             },
+
             Message::ThemeSelected(theme) => {
                 self.theme = theme;
                 Task::none()
