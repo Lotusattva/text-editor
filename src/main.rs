@@ -4,11 +4,11 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use iced::highlighter;
+use iced::keyboard::Key::Character;
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text, text_editor, tooltip,
 };
-use iced::{application, Element, Font, Length, Task};
+use iced::{application, highlighter, keyboard, Element, Font, Length, Subscription, Task};
 
 struct MyEditor {
     path: Option<PathBuf>,
@@ -179,12 +179,20 @@ impl MyEditor {
             .padding(10)
             .into()
     }
+
     fn theme(&self) -> iced::Theme {
         if self.theme.is_dark() {
             iced::Theme::Dark
         } else {
             iced::Theme::Light
         }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        keyboard::on_key_press(|key, modifiers| match key.as_ref() {
+            Character("s") if modifiers.control() => Some(Message::Save),
+            _ => None,
+        })
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -250,5 +258,6 @@ pub fn main() -> iced::Result {
         .theme(MyEditor::theme)
         .centered()
         .font(include_bytes!("../icons/editor-icons.ttf"))
+        .subscription(MyEditor::subscription)
         .run_with(|| MyEditor::new())
 }
