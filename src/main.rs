@@ -4,14 +4,19 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use iced::widget::{button, column, container, horizontal_space, row, text, text_editor};
-use iced::{application, Element, Font, Length, Task};
+use iced::highlighter::{self};
+use iced::keyboard::{self, Key, Modifiers};
+use iced::widget::{
+    button, column, container, horizontal_space, pick_list, row, text, text_editor,
+};
+use iced::{application, Element, Font, Length, Subscription, Task};
 
-#[derive(Default)]
 struct MyEditor {
     path: Option<PathBuf>,
     content: text_editor::Content,
     error: Option<FsError>,
+    theme: iced::highlighter::Theme,
+    is_dirty: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +27,7 @@ enum Message {
     New,
     Save,
     FileSaved(Result<PathBuf, FsError>),
+    ThemeSelected(highlighter::Theme),
 }
 
 #[derive(Debug, Clone)]
@@ -86,8 +92,18 @@ fn icon<'a>(icon: Icon) -> Element<'a, Message> {
     .into()
 }
 
-fn action<'a>(content: Element<'a, Message>, on_press: Message) -> Element<'a, Message> {
-    button(container(content).center_x(40)).on_press(on_press).into()
+fn action<'a>(content: Element<'a, Message>, on_press: Option<Message>) -> Element<'a, Message> {
+    let is_disabled = on_press.is_none();
+    // Build the button & wire up the click handler if we have one
+    let mut btn = button(container(content).center_x(40)).on_press_maybe(on_press);
+
+    // Pick the built-in style function
+    btn = btn.style(if is_disabled {
+        iced::widget::button::secondary
+    } else {
+        iced::widget::button::primary
+    });
+    btn.into()
 }
 
 impl MyEditor {
@@ -97,23 +113,48 @@ impl MyEditor {
                 path: None,
                 content: text_editor::Content::new(),
                 error: None,
+                theme: highlighter::Theme::SolarizedDark,
+                is_dirty: true,
             },
             Task::done(Message::FileOpened(load_file(default_file()))),
         )
     }
 
+    fn subscription(&self) -> Subscription<Message> {
+         keyboard::on_key_press(|key: Key, modifiers: Modifiers| {
+        if key == Key::Character("S".into()) && modifiers.command() {
+            Some(Message::Save)
+        } else {
+            None
+        }
+    })
+    }
+
     fn view(&self) -> Element<'_, Message> {
         let top_bar = row![
-            action(icon(Icon::New), Message::New),
-            action(icon(Icon::Open), Message::Open),
-            action(icon(Icon::Save), Message::Save),
+            action(icon(Icon::New), Some(Message::New)),
+            action(icon(Icon::Open), Some(Message::Open)),
+            action(icon(Icon::Save), self.is_dirty.then_some(Message::Save)),
+            horizontal_space(),
+            pick_list(
+                highlighter::Theme::ALL,
+                Some(self.theme),
+                Message::ThemeSelected
+            ),
         ]
         .spacing(10);
 
         let text_editor = text_editor(&self.content)
             .placeholder("Start typing...")
             .on_action(Message::Edit)
-            .height(Length::Fill);
+            .height(Length::Fill)
+            .highlight(
+                self.path
+                    .as_ref()
+                    .and_then(|path| path.extension()?.to_str())
+                    .unwrap_or("rs"),
+                self.theme,
+            );
 
         let status_bar = {
             let (line, column) = &self.content.cursor_position();
@@ -142,6 +183,7 @@ impl MyEditor {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Edit(action) => {
+                self.is_dirty = self.is_dirty || action.is_edit();
                 self.error = None;
                 self.content.perform(action);
                 Task::none()
@@ -151,6 +193,7 @@ impl MyEditor {
                 Ok((path, content)) => {
                     self.path = Some(path);
                     self.content = text_editor::Content::with_text(&content);
+                    self.is_dirty = false;
                     Task::none()
                 }
                 Err(error) => {
@@ -162,6 +205,7 @@ impl MyEditor {
             Message::New => {
                 self.path = None;
                 self.content = text_editor::Content::new();
+                self.is_dirty = true;
                 self.error = None;
                 Task::none()
             }
@@ -177,6 +221,7 @@ impl MyEditor {
             Message::FileSaved(result) => match result {
                 Ok(path) => {
                     self.path = Some(path);
+                    self.is_dirty = false;
                     Task::none()
                 }
                 Err(error) => {
@@ -184,12 +229,17 @@ impl MyEditor {
                     Task::none()
                 }
             },
+            Message::ThemeSelected(theme) => {
+                self.theme = theme;
+                Task::none()
+            }
         }
     }
 }
 
 pub fn main() -> iced::Result {
     application("Text Editor", MyEditor::update, MyEditor::view)
+        .subscription(MyEditor::subscription)
         .centered()
         .font(include_bytes!("../icons/editor-icons.ttf"))
         .run_with(|| MyEditor::new())
