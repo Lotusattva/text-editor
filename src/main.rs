@@ -96,16 +96,14 @@ fn action<'a>(
     description: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let is_disabled = on_press.is_none();
-    // Build the button & wire up the click handler if we have one
     tooltip(
         button(container(content).center_x(40))
-            .on_press_maybe(on_press)
-            .style(if is_disabled {
+            .style(if on_press.is_none() {
                 iced::widget::button::secondary
             } else {
                 iced::widget::button::primary
-            }),
+            })
+            .on_press_maybe(on_press),
         description,
         tooltip::Position::FollowCursor,
     )
