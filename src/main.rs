@@ -1,16 +1,20 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 use rfd::FileDialog;
-use std::fs::read_to_string;
-use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-
-use iced::keyboard::Key::Character;
-use iced::widget::{
-    button, column, container, horizontal_space, pick_list, row, text, text_editor, tooltip,
+use std::{
+    fs::read_to_string,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+    sync::Arc,
 };
-use iced::{application, highlighter, keyboard, Element, Font, Length, Subscription, Task};
+
+use iced::{
+    keyboard::Key::Character,
+    widget::{
+        button, column, container, horizontal_space, pick_list, row, text, text_editor, tooltip,
+    },
+    {application, highlighter, keyboard, Element, Font, Length, Subscription, Task},
+};
 
 struct MyEditor {
     path: Option<PathBuf>,
@@ -192,7 +196,9 @@ impl MyEditor {
 
     fn subscription(&self) -> Subscription<Message> {
         keyboard::on_key_press(|key, modifiers| match key.as_ref() {
-            Character("s") if modifiers.macos_command() || modifiers.command() => Some(Message::Save),
+            Character("s") if modifiers.macos_command() || modifiers.command() => {
+                Some(Message::Save)
+            }
             _ => None,
         })
     }
