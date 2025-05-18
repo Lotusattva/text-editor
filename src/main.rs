@@ -192,7 +192,7 @@ impl MyEditor {
 
     fn subscription(&self) -> Subscription<Message> {
         keyboard::on_key_press(|key, modifiers| match key.as_ref() {
-            Character("s") if modifiers.control() => Some(Message::Save),
+            Character("s") if modifiers.macos_command() || modifiers.command() => Some(Message::Save),
             _ => None,
         })
     }
