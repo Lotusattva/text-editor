@@ -1,1 +1,1 @@
-A text editor made in Rust
+A simple text editor with syntax highlighting and line numbers, powered by `Iced` GUI library in Rust.
