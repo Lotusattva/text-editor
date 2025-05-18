@@ -1,3 +1,5 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use rfd::FileDialog;
 use std::fs::read_to_string;
 use std::io::ErrorKind;

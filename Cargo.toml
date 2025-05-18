@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 iced = { version = "0.13.1", features = ["debug", "highlighter"] }
 rfd = "0.15.3"
+
+[profile.release]
+opt-level = 3
